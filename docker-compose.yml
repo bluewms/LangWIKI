@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  langwiki:
+    build: .
+    container_name: langwiki
+    ports:
+      - "3100:3100"
+    environment:
+      - PORT=3100
+      - NODE_ENV=production
+      - ANYTHINGLLM_URL=http://anythingllm:3001
+      - ANYTHINGLLM_API_KEY=${ANYTHINGLLM_API_KEY}
+      - LANGWIKI_DATA_DIR=/app/data
+      - LANGWIKI_USERS_DIR=/app/data/users
+    volumes:
+      - business-data:/data/business
+      - langwiki-system:/app/data
+    depends_on:
+      - anythingllm
+
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: anythingllm
+    ports:
+      - "3001:3001"
+    environment:
+      - STORAGE_DIR=/app/server/storage
+    volumes:
+      - anythingllm-storage:/app/server/storage
+      - business-data:/app/business
+
+volumes:
+  business-data:
+  langwiki-system:
+  anythingllm-storage:
