@@ -4,7 +4,6 @@ const path = require('path');
 
 const { updateIndex } = require('../../src/wiki/index');
 const { appendLog } = require('../../src/wiki/log');
-const { AnythingLLMSync } = require('../../src/wiki/sync');
 
 describe('wiki modules', () => {
   let tempRoot;
@@ -42,26 +41,5 @@ describe('wiki modules', () => {
 
     expect(content).toContain('ingest | 富士康');
     expect(content).toContain('新增文件: 2 个');
-  });
-
-  test('AnythingLLMSync notifyNewWiki should call collector API in collector mode', async () => {
-    const originalFetch = global.fetch;
-    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
-
-    const sync = new AnythingLLMSync({
-      anythingllmUrl: 'http://localhost:3001',
-      sharedVolume: '/data/business',
-      mode: 'collector',
-      apiKey: 'abc'
-    });
-
-    await sync.notifyNewWiki('/data/business/.LangWIKI/entities/富士康/富士康-wiki.md');
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      'http://localhost:3001/api/document/upload',
-      expect.objectContaining({ method: 'POST' })
-    );
-
-    global.fetch = originalFetch;
   });
 });

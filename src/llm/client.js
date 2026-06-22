@@ -1,43 +1,53 @@
-const { directChat } = require('./direct');
+/**
+ * LLM 客户端 — 统一入口，使用多模型路由器
+ *
+ * 替代旧的 AnythingLLM 代理模式，直接通过 router.js 路由到各 LLM provider。
+ * 调用方只需 llmClient.chat(prompt)，底层自动根据配置选择 provider。
+ */
+
+const { chat: routerChat, resolveModel, checkModelEnv, listSupportedModels } = require('./router');
 
 class LlmClient {
   constructor(config = {}) {
-    this.anythingllmUrl = config.anythingllmUrl || 'http://localhost:3001';
-    this.apiKey = config.apiKey || '';
-    this.directMode = config.directMode || false;
-    this.directConfig = config.directConfig || null;
-  }
+    // 允许传入已解析的 modelConfig，或通过 modelName 解析
+    this.modelName = config.modelName || config.model || process.env.LLM_MODEL || 'deepseek/deepseek-chat';
+    this.modelConfig = config.modelConfig || null;
 
-  async _proxyChat(prompt, options = {}) {
-    const response = await fetch(`${this.anythingllmUrl}/api/system/openai/chat`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ message: prompt, ...options })
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`AnythingLLM proxy chat failed: ${response.status} ${text}`);
+    if (config.modelConfig) {
+      this.modelConfig = config.modelConfig;
+    } else {
+      this.modelConfig = resolveModel(this.modelName);
     }
-
-    return response.json();
   }
 
-  async _directChat(prompt, options = {}) {
-    return directChat(prompt, options, this.directConfig || {});
-  }
-
+  /**
+   * 发送聊天请求，返回 { textResponse, raw }
+   */
   async chat(prompt, options = {}) {
-    if (this.directMode) {
-      return this._directChat(prompt, options);
-    }
-    return this._proxyChat(prompt, options);
+    return routerChat(prompt, options, this.modelConfig);
+  }
+
+  /**
+   * 检查当前模型的环境变量是否就绪
+   */
+  checkEnv() {
+    return checkModelEnv(this.modelName);
+  }
+
+  /**
+   * 获取当前模型信息
+   */
+  getModelInfo() {
+    return {
+      model: this.modelName,
+      provider: this.modelConfig.provider,
+      baseUrl: this.modelConfig.baseUrl,
+      resolvedModel: this.modelConfig.model
+    };
   }
 }
 
 module.exports = {
-  LlmClient
+  LlmClient,
+  listSupportedModels
 };

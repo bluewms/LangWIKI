@@ -1,35 +1,16 @@
+/**
+ * direct.js — 向后兼容的直连入口
+ *
+ * v0.2 起 LlmClient 直接使用 router 多模型路由，此文件仅保留导出兼容旧引用。
+ */
+
+const { chat, resolveModel } = require('./router');
+
 async function directChat(prompt, options = {}, directConfig = {}) {
-  if (directConfig && typeof directConfig.chat === 'function') {
-    return directConfig.chat(prompt, options);
-  }
-
-  const apiKey = directConfig.apiKey || process.env.OPENAI_API_KEY;
-  const baseUrl = directConfig.baseUrl || 'https://api.openai.com/v1';
-  const model = directConfig.model || 'gpt-4o-mini';
-
-  if (!apiKey) {
-    throw new Error('Direct mode requires OPENAI_API_KEY or directConfig.apiKey');
-  }
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options.temperature
-    })
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Direct chat failed: ${response.status} ${text}`);
-  }
-
-  return response.json();
+  const config = directConfig.provider
+    ? directConfig
+    : resolveModel(directConfig.model || process.env.LLM_MODEL || 'deepseek/deepseek-chat');
+  return chat(prompt, options, config);
 }
 
 module.exports = {

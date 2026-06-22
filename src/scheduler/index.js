@@ -1,45 +1,94 @@
+/**
+ * 原生定时调度器 — 替代 AnythingLLM 调度
+ *
+ * 使用 node-cron 在进程内管理定时扫描任务，无需外部依赖。
+ */
+
+const cron = require('node-cron');
+const logger = require('../utils/logger');
+
 class Scheduler {
-  constructor(anythingllmUrl, apiKey, options = {}) {
-    this.anythingllmUrl = (anythingllmUrl || 'http://localhost:3001').replace(/\/$/, '');
-    this.apiKey = apiKey || '';
-    this.endpoint = options.endpoint || '/api/system/scheduled-jobs';
-    this.callbackPath = options.callbackPath || '/api/langwiki/ingest/trigger';
-    this.callbackBaseUrl = options.callbackBaseUrl || 'http://localhost:3100';
+  constructor() {
+    this.jobs = new Map(); // jobId → { task, cronExpression, callback, workspaceId }
+    this.counter = 0;
   }
 
-  async _request(method, path, body) {
-    const response = await fetch(`${this.anythingllmUrl}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: body ? JSON.stringify(body) : undefined
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Scheduler request failed: ${response.status} ${text}`);
+  /**
+   * 注册定时扫描任务
+   * @param {string} workspaceId - 工作区标识
+   * @param {string} cronExpression - cron 表达式 (如 "0 * * * *" 每小时)
+   * @param {Function} callback - 触发时执行的异步函数
+   * @returns {string} jobId
+   */
+  registerScanJob(workspaceId, cronExpression, callback) {
+    if (!cron.validate(cronExpression)) {
+      throw new Error(`无效的 cron 表达式: ${cronExpression}`);
     }
 
-    return response.json();
-  }
+    const jobId = `langwiki-scan-${workspaceId}-${++this.counter}`;
 
-  async registerScanJob(workspaceId, cronExpression) {
-    return this._request('POST', this.endpoint, {
-      name: `langwiki-scan-${workspaceId}`,
-      cronExpression,
-      callbackUrl: `${this.callbackBaseUrl}${this.callbackPath}`,
-      payload: { workspaceId }
+    // 如果已存在同 workspace 的任务，先移除
+    for (const [id, job] of this.jobs) {
+      if (job.workspaceId === workspaceId) {
+        job.task.stop();
+        this.jobs.delete(id);
+      }
+    }
+
+    const task = cron.schedule(cronExpression, async () => {
+      logger.info(`[Scheduler] 触发任务 ${jobId} (workspace: ${workspaceId})`);
+      try {
+        await callback(workspaceId);
+      } catch (err) {
+        logger.error(`[Scheduler] 任务 ${jobId} 执行失败: ${err.message}`);
+      }
     });
+
+    this.jobs.set(jobId, {
+      task,
+      cronExpression,
+      callback,
+      workspaceId,
+      createdAt: new Date().toISOString()
+    });
+
+    logger.info(`[Scheduler] 已注册任务 ${jobId}, cron: ${cronExpression}`);
+    return jobId;
   }
 
-  async listJobs() {
-    return this._request('GET', this.endpoint);
+  /**
+   * 列出所有任务
+   */
+  listJobs() {
+    return Array.from(this.jobs.entries()).map(([id, job]) => ({
+      id,
+      workspaceId: job.workspaceId,
+      cronExpression: job.cronExpression,
+      createdAt: job.createdAt
+    }));
   }
 
-  async removeJob(jobId) {
-    return this._request('DELETE', `${this.endpoint}/${jobId}`);
+  /**
+   * 移除任务
+   */
+  removeJob(jobId) {
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
+    job.task.stop();
+    this.jobs.delete(jobId);
+    logger.info(`[Scheduler] 已移除任务 ${jobId}`);
+    return true;
+  }
+
+  /**
+   * 停止所有任务
+   */
+  stopAll() {
+    for (const job of this.jobs.values()) {
+      job.task.stop();
+    }
+    this.jobs.clear();
+    logger.info('[Scheduler] 已停止所有任务');
   }
 }
 

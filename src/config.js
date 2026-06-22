@@ -16,11 +16,15 @@ function loadConfig() {
     port: toNumber(process.env.PORT, 3100),
     nodeEnv: process.env.NODE_ENV || 'development',
     corsOrigin: process.env.CORS_ORIGIN || '*',
-    anythingllmUrl: process.env.ANYTHINGLLM_URL || 'http://localhost:3001',
-    anythingllmApiKey: process.env.ANYTHINGLLM_API_KEY || '',
     dataDir,
     usersDir: process.env.LANGWIKI_USERS_DIR || path.join(dataDir, 'users'),
-    frontendDist: process.env.LANGWIKI_FRONTEND_DIST || ''
+    frontendDist: process.env.LANGWIKI_FRONTEND_DIST || '',
+
+    // LLM 配置（替代 AnythingLLM）
+    llm: {
+      model: process.env.LLM_MODEL || 'deepseek/deepseek-chat',
+      temperature: toNumber(process.env.LLM_TEMPERATURE, 0.3)
+    }
   };
 }
 

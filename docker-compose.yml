@@ -9,28 +9,20 @@ services:
     environment:
       - PORT=3100
       - NODE_ENV=production
-      - ANYTHINGLLM_URL=http://anythingllm:3001
-      - ANYTHINGLLM_API_KEY=${ANYTHINGLLM_API_KEY}
       - LANGWIKI_DATA_DIR=/app/data
       - LANGWIKI_USERS_DIR=/app/data/users
+      # LLM 配置（按需选择一个模型并设置对应 API Key）
+      - LLM_MODEL=${LLM_MODEL:-deepseek/deepseek-chat}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.3}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - business-data:/data/business
       - langwiki-system:/app/data
-    depends_on:
-      - anythingllm
-
-  anythingllm:
-    image: mintplexlabs/anythingllm:latest
-    container_name: anythingllm
-    ports:
-      - "3001:3001"
-    environment:
-      - STORAGE_DIR=/app/server/storage
-    volumes:
-      - anythingllm-storage:/app/server/storage
-      - business-data:/app/business
 
 volumes:
   business-data:
   langwiki-system:
-  anythingllm-storage:

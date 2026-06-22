@@ -20,10 +20,8 @@ function createServer(config = {}) {
   const systemDir = langwikiConfig.systemDir || config.dataDir || path.join(process.cwd(), 'data');
 
   const llmClient = langwikiConfig.llmClient || new LlmClient({
-    anythingllmUrl: config.anythingllmUrl,
-    apiKey: config.anythingllmApiKey,
-    directMode: langwikiConfig.directMode,
-    directConfig: langwikiConfig.directConfig
+    modelName: config.llm?.model,
+    modelConfig: langwikiConfig.modelConfig
   });
 
   const orchestrator = langwikiConfig.orchestrator || new Orchestrator(llmClient, {
