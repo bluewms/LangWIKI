@@ -13,7 +13,7 @@ export function LangwikiRoutePlaceholder({ title }: { title: string }) {
   return (
     <div style={{ padding: 24 }}>
       <h1>{title}</h1>
-      <p>LangWIKI 页面骨架已创建，后续将在 AnythingLLM 前端中接入真实数据与交互。</p>
+      <p>LangWIKI 页面骨架已创建，后续将接入真实数据与交互。</p>
     </div>
   );
 }

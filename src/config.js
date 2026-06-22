@@ -20,7 +20,7 @@ function loadConfig() {
     usersDir: process.env.LANGWIKI_USERS_DIR || path.join(dataDir, 'users'),
     frontendDist: process.env.LANGWIKI_FRONTEND_DIST || '',
 
-    // LLM 配置（替代 AnythingLLM）
+    // LLM 配置
     llm: {
       model: process.env.LLM_MODEL || 'deepseek/deepseek-chat',
       temperature: toNumber(process.env.LLM_TEMPERATURE, 0.3)

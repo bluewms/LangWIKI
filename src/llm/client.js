@@ -1,7 +1,7 @@
 /**
  * LLM 客户端 — 统一入口，使用多模型路由器
  *
- * 替代旧的 AnythingLLM 代理模式，直接通过 router.js 路由到各 LLM provider。
+ * 通过 router.js 路由到各 LLM provider。
  * 调用方只需 llmClient.chat(prompt)，底层自动根据配置选择 provider。
  */
 

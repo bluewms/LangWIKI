@@ -1,6 +1,6 @@
-# LangWIKI Frontend（AnythingLLM 风格裁剪版）
+# LangWIKI Frontend
 
-该前端沿用 AnythingLLM 常见信息架构思路（侧边导航 + 主工作区），但当前仅保留与 LangWIKI 直接相关的模块。
+该前端采用侧边导航 + 主工作区的信息架构，仅保留与 LangWIKI 直接相关的模块。
 
 ## 已落地页面（第一阶段）
 
