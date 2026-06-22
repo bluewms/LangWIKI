@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const { createLangwikiRouter } = require('./routes');
 const { LlmClient } = require('./llm/client');
 const { Orchestrator } = require('./orchestrator');
+const { init: initLlmConfig } = require('./llm/config-store');
 
 function createServer(config = {}) {
   const app = express();
@@ -19,8 +20,12 @@ function createServer(config = {}) {
   const defaultRootDir = langwikiConfig.defaultRootDir || config.dataDir || process.cwd();
   const systemDir = langwikiConfig.systemDir || config.dataDir || path.join(process.cwd(), 'data');
 
+  // 初始化 LLM 配置（从 data/llm-config.json 加载，应用到环境变量）
+  const dataDir = config.dataDir || defaultRootDir;
+  const llmConfig = initLlmConfig(dataDir);
+
   const llmClient = langwikiConfig.llmClient || new LlmClient({
-    modelName: config.llm?.model,
+    modelName: llmConfig.model,
     modelConfig: langwikiConfig.modelConfig
   });
 

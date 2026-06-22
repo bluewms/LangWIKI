@@ -4,6 +4,7 @@ const { createKnowledgeRouter } = require('./knowledge');
 const { createWorkspaceRouter } = require('./workspace');
 const { createSchemaRouter } = require('./schema');
 const { createUserRouter } = require('./user');
+const { createLlmRouter } = require('./llm');
 
 function createLangwikiRouter(config = {}) {
   const router = express.Router();
@@ -13,6 +14,7 @@ function createLangwikiRouter(config = {}) {
   router.use(createWorkspaceRouter(config));
   router.use(createSchemaRouter({ rootDir: config.defaultRootDir }));
   router.use(createUserRouter({ systemDir: config.systemDir, llmClient: config.llmClient }));
+  router.use(createLlmRouter(config));
 
   return router;
 }

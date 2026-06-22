@@ -4,11 +4,13 @@ import useWorkspaceScope from '../../../hooks/useWorkspaceScope';
 import WorkspacePage from '../Workspace';
 import IngestPage from '../Ingest';
 import SchemaPage from '../Schema';
+import LlmSettingsPage from '../LlmSettings';
 
 const tabs = [
   { key: 'manage', label: '工作区管理' },
   { key: 'ingest', label: 'Ingest 控制台' },
-  { key: 'schema', label: 'Schema 管理' }
+  { key: 'schema', label: 'Schema 管理' },
+  { key: 'llm', label: '大模型设置' }
 ];
 
 export default function WorkspaceSettingsPage() {
@@ -42,6 +44,7 @@ export default function WorkspaceSettingsPage() {
       {activeTab === 'manage' ? <WorkspacePage compact /> : null}
       {activeTab === 'ingest' ? <IngestPage compact /> : null}
       {activeTab === 'schema' ? <SchemaPage compact /> : null}
+      {activeTab === 'llm' ? <LlmSettingsPage compact /> : null}
     </div>
   );
 }

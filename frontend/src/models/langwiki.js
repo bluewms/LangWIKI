@@ -160,6 +160,30 @@ export async function getUserContext(username = 'default') {
   return request(`/api/langwiki/users/${encodeURIComponent(username)}/context`);
 }
 
+export async function getLlmModels() {
+  return request('/api/langwiki/llm/models');
+}
+
+export async function getLlmConfig() {
+  return request('/api/langwiki/llm/config');
+}
+
+export async function updateLlmConfig(payload) {
+  return request('/api/langwiki/llm/config', {
+    method: 'PUT',
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function testLlmConnection(payload) {
+  return request('/api/langwiki/llm/test', {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function getUserWiki(username = 'default') {
   return request(`/api/langwiki/users/${encodeURIComponent(username)}/wiki`);
 }
