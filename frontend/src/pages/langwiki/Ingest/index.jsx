@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { FolderOpen, Play, Pause, RefreshCw, Loader2, ChevronUp, Folder, Zap, ScanLine } from 'lucide-react';
 import {
   getIngestStatus,
   listFilesystemDirs,
@@ -10,13 +11,16 @@ import {
 } from '../../../models/langwiki';
 import useWorkspaceScope from '../../../hooks/useWorkspaceScope';
 import { setActiveWorkspace } from '../../../models/workspaceState';
+import { PageHeader, Card, Button, Badge, StatusDot, useToast } from '../../../components/ui';
+
+const STATUS_LABEL = { idle: '空闲', running: '运行中', paused: '已暂停', error: '异常' };
 
 export default function IngestPage({ compact = false }) {
+  const toast = useToast();
   const activeWorkspace = useWorkspaceScope();
   const [status, setStatus] = useState(null);
   const [entityName, setEntityName] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
   const [sourceDir, setSourceDir] = useState('');
   const [dirBrowser, setDirBrowser] = useState(null);
   const [dirLoading, setDirLoading] = useState(false);
@@ -26,23 +30,26 @@ export default function IngestPage({ compact = false }) {
   }, [activeWorkspace?.id, activeWorkspace?.sourceDir]);
 
   async function refreshStatus() {
-    const data = await getIngestStatus();
-    setStatus(data.status || null);
+    try {
+      const data = await getIngestStatus();
+      setStatus(data.status || null);
+    } catch (_e) {
+      setStatus(null);
+    }
   }
 
   useEffect(() => {
-    refreshStatus().catch(() => setStatus(null));
+    refreshStatus();
   }, []);
 
-  async function runAction(action) {
+  async function runAction(action, successMsg = '操作成功') {
     setBusy(true);
-    setMessage('');
     try {
       await action();
       await refreshStatus();
-      setMessage('操作成功');
+      toast.success(successMsg);
     } catch (error) {
-      setMessage(error.message || '操作失败');
+      toast.error(error.message || '操作失败');
     } finally {
       setBusy(false);
     }
@@ -54,7 +61,7 @@ export default function IngestPage({ compact = false }) {
       const data = await listFilesystemDirs(pathValue);
       setDirBrowser(data);
     } catch (error) {
-      setMessage(error.message || '目录读取失败');
+      toast.error(error.message || '目录读取失败');
     } finally {
       setDirLoading(false);
     }
@@ -62,17 +69,13 @@ export default function IngestPage({ compact = false }) {
 
   async function saveSourceDir() {
     if (!activeWorkspace?.id) return;
-
     setBusy(true);
-    setMessage('');
     try {
       const data = await updateWorkspace(activeWorkspace.id, { sourceDir: sourceDir.trim() });
-      if (data.workspace) {
-        setActiveWorkspace(data.workspace);
-      }
-      setMessage('扫描目录已保存');
+      if (data.workspace) setActiveWorkspace(data.workspace);
+      toast.success('扫描目录已保存');
     } catch (error) {
-      setMessage(error.message || '保存扫描目录失败');
+      toast.error(error.message || '保存扫描目录失败');
     } finally {
       setBusy(false);
     }
@@ -82,154 +85,183 @@ export default function IngestPage({ compact = false }) {
   const outputRootDir = activeWorkspace?.rootDir;
 
   return (
-    <div className="space-y-4">
-      {!compact ? <h1 className="text-2xl font-semibold">Ingest 控制台</h1> : null}
+    <div className="space-y-6">
+      {!compact ? (
+        <PageHeader
+          title="Ingest 控制台"
+          subtitle="扫描业务目录并生成 Wiki 知识"
+          actions={
+            status?.state ? (
+              <div className="flex items-center gap-2">
+                <StatusDot status={status.state === 'running' ? 'running' : status.state === 'paused' ? 'pending' : 'completed'} />
+                <Badge variant={status.state === 'running' ? 'success' : status.state === 'paused' ? 'warning' : 'neutral'}>
+                  {STATUS_LABEL[status.state] || status.state}
+                </Badge>
+              </div>
+            ) : null
+          }
+        />
+      ) : null}
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2 text-sm">
-        <div>
-          扫描目录：
-          <span className="font-medium break-all">{ingestSourceDir || '未设置'}</span>
-        </div>
-        <div>
-          生成目录：
-          <span className="font-medium break-all">{outputRootDir || '服务默认目录'}</span>
+      {/* 概览卡 */}
+      <Card compact>
+        <div className="grid sm:grid-cols-2 gap-3 text-sm">
+          <div>
+            <span className="text-slate-500">扫描目录：</span>
+            <span className="font-medium text-slate-900 break-all">{ingestSourceDir || '未设置'}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">生成目录：</span>
+            <span className="font-medium text-slate-900 break-all">{outputRootDir || '服务默认目录'}</span>
+          </div>
         </div>
         {status ? (
-          <div className="grid md:grid-cols-4 gap-2 text-slate-700">
-            <div>状态：{status.state}</div>
-            <div>待处理：{status.pending}</div>
-            <div>运行中：{status.running}</div>
-            <div>已完成：{status.completed}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-100">
+            {[
+              { label: '状态', value: STATUS_LABEL[status.state] || status.state },
+              { label: '待处理', value: status.pending ?? 0 },
+              { label: '运行中', value: status.running ?? 0 },
+              { label: '已完成', value: status.completed ?? 0 }
+            ].map((s) => (
+              <div key={s.label}>
+                <div className="text-xs text-slate-500">{s.label}</div>
+                <div className="text-lg font-semibold text-slate-900">{s.value}</div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="text-slate-500">暂未获取到队列状态</div>
+          <div className="text-sm text-slate-400 mt-3 pt-3 border-t border-slate-100">暂未获取到队列状态</div>
         )}
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
-        <div className="font-medium">选择 ingest 扫描目录</div>
+      {/* 扫描目录选择 */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <FolderOpen size={16} className="text-slate-500" />
+          <span className="text-sm font-medium text-slate-900">选择扫描目录</span>
+        </div>
         <input
-          className="w-full border border-slate-300 rounded-lg p-2 text-sm"
+          className="input mb-3"
           placeholder="输入绝对路径，或用下方目录浏览选择"
           value={sourceDir}
           onChange={(e) => setSourceDir(e.target.value)}
         />
-
         <div className="flex flex-wrap gap-2">
-          <button
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm disabled:opacity-50"
-            onClick={() => openDir(sourceDir)}
-            disabled={dirLoading}
-          >
-            {dirLoading ? '读取中...' : '浏览目录'}
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm disabled:opacity-50"
-            onClick={() => openDir('')}
-            disabled={dirLoading}
-          >
+          <Button variant="outline" size="sm" onClick={() => openDir(sourceDir)} disabled={dirLoading}>
+            {dirLoading ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
+            浏览目录
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openDir('')} disabled={dirLoading}>
             从主目录开始
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-50"
-            onClick={saveSourceDir}
-            disabled={busy || !activeWorkspace?.id}
-          >
+          </Button>
+          <Button variant="secondary" size="sm" onClick={saveSourceDir} disabled={busy || !activeWorkspace?.id}>
             保存扫描目录
-          </button>
+          </Button>
         </div>
 
         {dirBrowser ? (
-          <div className="space-y-2 text-sm">
-            <div className="text-slate-500 break-all">当前：{dirBrowser.current}</div>
-            {dirBrowser.parent ? (
-              <button
-                className="px-2 py-1 rounded border border-slate-300 text-xs"
-                onClick={() => openDir(dirBrowser.parent)}
-              >
-                上一级
-              </button>
-            ) : null}
-            <div className="max-h-44 overflow-auto border border-slate-200 rounded-lg p-2 space-y-1">
-              {dirBrowser.children?.map((child) => (
-                <div key={child.path} className="flex items-center justify-between gap-2">
-                  <button
-                    className="text-left text-xs text-slate-700 hover:text-slate-900 break-all"
-                    onClick={() => openDir(child.path)}
-                  >
-                    {child.name}
-                  </button>
-                  <button
-                    className="px-2 py-0.5 text-xs rounded border border-slate-300"
-                    onClick={() => setSourceDir(child.path)}
-                  >
-                    选中
-                  </button>
-                </div>
-              ))}
+          <div className="mt-3 border border-slate-200 rounded-md overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+              <span className="text-xs text-slate-500 break-all font-mono">{dirBrowser.current}</span>
+              {dirBrowser.parent ? (
+                <button
+                  className="shrink-0 ml-2 inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"
+                  onClick={() => openDir(dirBrowser.parent)}
+                >
+                  <ChevronUp size={12} /> 上一级
+                </button>
+              ) : null}
+            </div>
+            <div className="max-h-48 overflow-auto p-1">
+              {dirBrowser.children?.length === 0 ? (
+                <div className="text-xs text-slate-400 px-2 py-3 text-center">无子目录</div>
+              ) : (
+                dirBrowser.children?.map((child) => (
+                  <div key={child.path} className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-50 group">
+                    <button
+                      className="flex items-center gap-1.5 text-left text-xs text-slate-700 hover:text-slate-900 min-w-0"
+                      onClick={() => openDir(child.path)}
+                    >
+                      <Folder size={12} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{child.name}</span>
+                    </button>
+                    <button
+                      className="shrink-0 px-2 py-0.5 text-xs rounded border border-slate-200 hover:border-brand-400 hover:text-brand-600 opacity-0 group-hover:opacity-100 transition duration-fast"
+                      onClick={() => setSourceDir(child.path)}
+                    >
+                      选中
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ) : null}
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
-        <div className="font-medium">批量扫描</div>
-        <button
-          className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-50"
-          disabled={busy || !ingestSourceDir}
-          onClick={() => runAction(() => triggerInitialIngest(ingestSourceDir, outputRootDir))}
-        >
-          执行首次扫描
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
-        <div className="font-medium">按实体触发</div>
-        <div className="flex gap-2">
-          <input
-            className="flex-1 border border-slate-300 rounded-lg p-2 text-sm"
-            placeholder="输入实体名，例如 富士康"
-            value={entityName}
-            onChange={(e) => setEntityName(e.target.value)}
-          />
-          <button
-            className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm disabled:opacity-50"
-            disabled={busy || !entityName.trim() || !ingestSourceDir}
-            onClick={() => runAction(() => triggerEntityIngest(entityName.trim(), ingestSourceDir, outputRootDir))}
+      {/* 操作区 */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <ScanLine size={16} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-900">批量扫描</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">对扫描目录下所有文件执行首次提取与 Wiki 生成。</p>
+          <Button
+            variant="secondary"
+            disabled={busy || !ingestSourceDir}
+            onClick={() => runAction(() => triggerInitialIngest(ingestSourceDir, outputRootDir), '首次扫描已触发')}
           >
-            高优先级触发
-          </button>
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            执行首次扫描
+          </Button>
+        </Card>
+
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <Zap size={16} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-900">按实体触发</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">对指定实体高优先级触发提取。</p>
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              placeholder="实体名，例如 富士康"
+              value={entityName}
+              onChange={(e) => setEntityName(e.target.value)}
+            />
+            <Button
+              variant="primary"
+              disabled={busy || !entityName.trim() || !ingestSourceDir}
+              onClick={() => runAction(() => triggerEntityIngest(entityName.trim(), ingestSourceDir, outputRootDir), '实体触发已提交')}
+            >
+              触发
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* 队列控制 */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw size={16} className="text-slate-500" />
+          <span className="text-sm font-medium text-slate-900">队列控制</span>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
-        <div className="font-medium">队列控制</div>
-        <div className="flex gap-2">
-          <button
-            className="px-4 py-2 rounded-lg border border-slate-300 text-sm disabled:opacity-50"
-            disabled={busy}
-            onClick={() => runAction(() => pauseIngest())}
-          >
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={busy} onClick={() => runAction(() => pauseIngest(), '队列已暂停')}>
+            <Pause size={14} />
             暂停队列
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg border border-slate-300 text-sm disabled:opacity-50"
-            disabled={busy}
-            onClick={() => runAction(() => resumeIngest())}
-          >
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => runAction(() => resumeIngest(), '队列已恢复')}>
+            <Play size={14} />
             恢复队列
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg border border-slate-300 text-sm disabled:opacity-50"
-            disabled={busy}
-            onClick={() => runAction(() => refreshStatus())}
-          >
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={() => refreshStatus().then(() => toast.success('状态已刷新'))}>
+            <RefreshCw size={14} />
             刷新状态
-          </button>
+          </Button>
         </div>
-      </div>
-
-      {message ? <div className="text-sm text-slate-700">{message}</div> : null}
+      </Card>
     </div>
   );
 }

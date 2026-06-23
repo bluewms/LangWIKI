@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { FileText, ArrowLeft, AlertCircle } from 'lucide-react';
 import { getWorkspaceDocument } from '../../../models/langwiki';
 import useWorkspaceScope from '../../../hooks/useWorkspaceScope';
+import { PageHeader, Card, Button, Skeleton, EmptyState } from '../../../components/ui';
 
 export default function WorkspaceDocPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const workspace = useWorkspaceScope();
   const [searchParams] = useSearchParams();
   const [content, setContent] = useState('');
@@ -15,10 +18,8 @@ export default function WorkspaceDocPage() {
 
   useEffect(() => {
     if (!id || !filePath) return;
-
     setLoading(true);
     setError('');
-
     getWorkspaceDocument(id, filePath)
       .then((data) => setContent(data.content || ''))
       .catch((err) => {
@@ -29,20 +30,49 @@ export default function WorkspaceDocPage() {
   }, [id, filePath]);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Markdown 文档预览</h1>
-        <div className="text-sm text-slate-600 mt-1">工作区：{workspace?.name || id}</div>
-        <div className="text-sm text-slate-500">路径：{filePath || '未指定文档'}</div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="文档预览"
+        subtitle={`工作区：${workspace?.name || id || ''}`}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft size={14} />
+            返回
+          </Button>
+        }
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 min-h-[60vh]">
-        {loading ? <div className="text-sm text-slate-500">加载中...</div> : null}
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
-        {!loading && !error ? (
-          <pre className="whitespace-pre-wrap text-sm leading-6">{content || '文档为空'}</pre>
-        ) : null}
-      </div>
+      {filePath ? (
+        <div className="flex items-center gap-2 text-xs">
+          <FileText size={14} className="text-slate-400" />
+          <span className="text-slate-500 break-all font-mono">{filePath}</span>
+        </div>
+      ) : null}
+
+      <Card className="min-h-[60vh]">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center py-12">
+            <AlertCircle size={32} className="text-red-400 mb-3" />
+            <div className="text-sm font-medium text-red-600">{error}</div>
+          </div>
+        ) : content ? (
+          <pre className="whitespace-pre-wrap text-sm leading-7 text-slate-700 font-sans">{content}</pre>
+        ) : (
+          <EmptyState
+            icon={<FileText size={32} />}
+            title="文档为空"
+            description="该文档暂无内容"
+          />
+        )}
+      </Card>
     </div>
   );
 }

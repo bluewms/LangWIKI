@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Search, MessageCircle, FileText, Sparkles, Loader2 } from 'lucide-react';
 import useLangwikiQuery from '../../../hooks/useLangwikiQuery';
 import useWorkspaceScope from '../../../hooks/useWorkspaceScope';
+import { PageHeader, Card, Button, Badge, Skeleton, EmptyState } from '../../../components/ui';
 
 export default function QueryPage() {
   const activeWorkspace = useWorkspaceScope();
@@ -8,53 +10,104 @@ export default function QueryPage() {
   const { loading, results, answer, search, ask } = useLangwikiQuery(activeWorkspace?.rootDir);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">查询与问答（无向量）</h1>
-      <div className="text-sm text-slate-600">
-        当前工作区：{activeWorkspace?.name || '默认目录'}
-        {activeWorkspace?.rootDir ? `（${activeWorkspace.rootDir}）` : ''}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="查询与问答"
+        subtitle="基于关键词检索或证据问答（无向量）"
+        actions={
+          activeWorkspace ? (
+            <Badge variant="brand">{activeWorkspace.name || '默认目录'}</Badge>
+          ) : null
+        }
+      />
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
+      {/* 输入区 */}
+      <Card>
         <textarea
-          className="w-full border border-slate-300 rounded-lg p-3 min-h-24"
+          className="input"
           value={input}
           placeholder="输入关键词或问题，例如：富士康合同金额是多少？"
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !loading && input.trim()) {
+              ask(input);
+            }
+          }}
         />
-        <div className="flex gap-2">
-          <button
-            className="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm disabled:opacity-50"
-            onClick={() => search(input)}
-            disabled={loading || !input.trim()}
-          >
-            关键词检索
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm disabled:opacity-50"
-            onClick={() => ask(input)}
-            disabled={loading || !input.trim()}
-          >
-            基于证据问答
-          </button>
+        <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+          <div className="text-xs text-slate-400">⌘/Ctrl + Enter 快速问答</div>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => search(input)}
+              disabled={loading || !input.trim()}
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+              关键词检索
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => ask(input)}
+              disabled={loading || !input.trim()}
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+              证据问答
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      {answer ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm leading-6">
-          <div className="font-medium mb-1">回答</div>
-          <div>{answer}</div>
-        </div>
+      {/* 回答区 */}
+      {loading && !answer ? (
+        <Card>
+          <Skeleton className="h-4 w-3/4 mb-2" />
+          <Skeleton className="h-4 w-full mb-1" />
+          <Skeleton className="h-4 w-5/6" />
+        </Card>
+      ) : answer ? (
+        <Card className="border-brand-200 bg-brand-50/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={16} className="text-brand-600" />
+            <span className="text-sm font-medium text-brand-800">回答</span>
+          </div>
+          <div className="text-sm leading-7 text-slate-700 whitespace-pre-wrap">{answer}</div>
+        </Card>
       ) : null}
 
-      <div className="space-y-2">
-        {results.map((item, idx) => (
-          <div key={`${item.file}-${idx}`} className="bg-white rounded-lg border border-slate-200 p-3">
-            <div className="text-xs text-slate-500 mb-1">{item.file}</div>
-            <div className="text-sm">{item.snippet}</div>
+      {/* 证据列表 */}
+      {loading && results.length === 0 ? (
+        <div className="space-y-2">
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+        </div>
+      ) : results.length > 0 ? (
+        <div>
+          <div className="text-sm font-medium text-slate-700 mb-2">
+            证据（{results.length}）
           </div>
-        ))}
-      </div>
+          <div className="space-y-2">
+            {results.map((item, idx) => (
+              <Card key={`${item.file}-${idx}`} interactive compact>
+                <div className="flex items-start gap-2">
+                  <FileText size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-xs text-slate-500 mb-1 break-all font-mono">{item.file}</div>
+                    <div className="text-sm text-slate-700 leading-6">{item.snippet}</div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : !loading && !answer ? (
+        <EmptyState
+          icon={<Search size={32} />}
+          title="暂无结果"
+          description="输入关键词或问题后，点击检索或问答按钮查看结果"
+        />
+      ) : null}
     </div>
   );
 }

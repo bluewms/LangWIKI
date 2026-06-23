@@ -2,13 +2,109 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #0f172a;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: theme('fontFamily.sans');
+    color: #0f172a;
+    background-color: #f8fafc;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* 滚动条美化 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer components {
+  /* ===== Button ===== */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 font-medium rounded-md transition duration-fast select-none;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+  .btn-sm { @apply h-8 px-3 text-xs; }
+  .btn-md { @apply h-9 px-4 text-sm; }
+  .btn-icon { @apply w-9 h-9 p-0; }
+
+  .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 active:scale-[0.98]; }
+  .btn-secondary { @apply bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.98]; }
+  .btn-outline { @apply bg-transparent text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400; }
+  .btn-ghost { @apply bg-transparent text-slate-600 hover:bg-slate-100; }
+  .btn-danger { @apply bg-transparent text-red-600 border border-red-300 hover:bg-red-50; }
+
+  /* ===== Card ===== */
+  .card {
+    @apply bg-white rounded-lg border border-slate-200 shadow-card;
+  }
+  .card-interactive {
+    @apply card transition duration-normal hover:shadow-card-hover hover:border-slate-300;
+  }
+  .card-body { @apply p-5; }
+  .card-body-compact { @apply p-4; }
+
+  /* ===== Input ===== */
+  .input {
+    @apply w-full h-9 px-3 text-sm rounded-md border border-slate-300 bg-white;
+    @apply placeholder:text-slate-400;
+    @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none;
+    @apply transition duration-fast;
+    @apply disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed;
+  }
+  textarea.input { @apply h-auto py-2 min-h-24 resize-y; }
+
+  /* ===== Badge ===== */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-neutral { @apply bg-slate-100 text-slate-600; }
+  .badge-brand { @apply bg-brand-50 text-brand-700; }
+  .badge-success { @apply bg-green-50 text-green-700; }
+  .badge-warning { @apply bg-amber-50 text-amber-700; }
+  .badge-danger { @apply bg-red-50 text-red-700; }
+
+  /* ===== StatusDot ===== */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+  .status-dot-running { @apply bg-green-500 animate-pulse-dot; }
+  .status-dot-pending { @apply bg-amber-500; }
+  .status-dot-completed { @apply bg-slate-400; }
+  .status-dot-error { @apply bg-red-500; }
+
+  /* ===== PageHeader ===== */
+  .page-header { @apply mb-6; }
+  .page-title { @apply text-xl lg:text-2xl font-semibold text-slate-900; }
+  .page-subtitle { @apply text-sm text-slate-500 mt-1; }
+
+  /* ===== Skeleton ===== */
+  .skeleton {
+    @apply bg-slate-100 rounded animate-pulse;
+  }
+}
+
+@layer utilities {
+  .fade-in { @apply animate-fade-in; }
 }
