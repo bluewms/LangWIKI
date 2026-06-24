@@ -9,7 +9,8 @@ const PROVIDER_LABELS = {
   qwen: '通义千问',
   anthropic: 'Anthropic Claude',
   google: 'Google Gemini',
-  ollama: 'Ollama (本地)'
+  ollama: 'Ollama (本地)',
+  langai: 'LangAI (vLLM 自部署)'
 };
 
 const ENV_KEY_LABELS = {
@@ -17,7 +18,8 @@ const ENV_KEY_LABELS = {
   OPENAI_API_KEY: 'OpenAI API Key',
   DASHSCOPE_API_KEY: '通义千问 API Key',
   ANTHROPIC_API_KEY: 'Anthropic API Key',
-  GEMINI_API_KEY: 'Gemini API Key'
+  GEMINI_API_KEY: 'Gemini API Key',
+  LANGAI_API_KEY: 'LangAI API Key (vLLM)'
 };
 
 export default function LlmSettingsPage({ compact = false }) {

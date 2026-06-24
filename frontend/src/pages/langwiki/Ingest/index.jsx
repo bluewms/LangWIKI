@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { FolderOpen, Play, Pause, RefreshCw, Loader2, ChevronUp, Folder, Zap, ScanLine } from 'lucide-react';
+import { Play, Pause, RefreshCw, Loader2, ScanLine, FileText, Plus, X } from 'lucide-react';
 import {
   getIngestStatus,
-  listFilesystemDirs,
+  getIngestFileTypes,
   pauseIngest,
   resumeIngest,
-  triggerEntityIngest,
-  triggerInitialIngest,
-  updateWorkspace
+  triggerInitialIngest
 } from '../../../models/langwiki';
 import useWorkspaceScope from '../../../hooks/useWorkspaceScope';
 import { setActiveWorkspace } from '../../../models/workspaceState';
@@ -19,15 +17,9 @@ export default function IngestPage({ compact = false }) {
   const toast = useToast();
   const activeWorkspace = useWorkspaceScope();
   const [status, setStatus] = useState(null);
-  const [entityName, setEntityName] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sourceDir, setSourceDir] = useState('');
-  const [dirBrowser, setDirBrowser] = useState(null);
-  const [dirLoading, setDirLoading] = useState(false);
-
-  useEffect(() => {
-    setSourceDir(activeWorkspace?.sourceDir || '');
-  }, [activeWorkspace?.id, activeWorkspace?.sourceDir]);
+  const [fileTypes, setFileTypes] = useState([]);
+  const [selectedTypes, setSelectedTypes] = useState([]);
 
   async function refreshStatus() {
     try {
@@ -38,8 +30,18 @@ export default function IngestPage({ compact = false }) {
     }
   }
 
+  async function refreshFileTypes() {
+    try {
+      const data = await getIngestFileTypes();
+      setFileTypes(data.types || []);
+    } catch (_e) {
+      setFileTypes([]);
+    }
+  }
+
   useEffect(() => {
     refreshStatus();
+    refreshFileTypes();
   }, []);
 
   async function runAction(action, successMsg = '操作成功') {
@@ -55,33 +57,13 @@ export default function IngestPage({ compact = false }) {
     }
   }
 
-  async function openDir(pathValue = '') {
-    setDirLoading(true);
-    try {
-      const data = await listFilesystemDirs(pathValue);
-      setDirBrowser(data);
-    } catch (error) {
-      toast.error(error.message || '目录读取失败');
-    } finally {
-      setDirLoading(false);
-    }
+  function toggleType(key) {
+    setSelectedTypes((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
   }
 
-  async function saveSourceDir() {
-    if (!activeWorkspace?.id) return;
-    setBusy(true);
-    try {
-      const data = await updateWorkspace(activeWorkspace.id, { sourceDir: sourceDir.trim() });
-      if (data.workspace) setActiveWorkspace(data.workspace);
-      toast.success('扫描目录已保存');
-    } catch (error) {
-      toast.error(error.message || '保存扫描目录失败');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const ingestSourceDir = sourceDir.trim() || activeWorkspace?.sourceDir || activeWorkspace?.rootDir;
+  const ingestSourceDir = activeWorkspace?.sourceDir || activeWorkspace?.rootDir;
   const outputRootDir = activeWorkspace?.rootDir;
 
   return (
@@ -108,7 +90,7 @@ export default function IngestPage({ compact = false }) {
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-slate-500">扫描目录：</span>
-            <span className="font-medium text-slate-900 break-all">{ingestSourceDir || '未设置'}</span>
+            <span className="font-medium text-slate-900 break-all">{ingestSourceDir || '未设置（请到工作区管理配置扫描源目录）'}</span>
           </div>
           <div>
             <span className="text-slate-500">生成目录：</span>
@@ -134,110 +116,79 @@ export default function IngestPage({ compact = false }) {
         )}
       </Card>
 
-      {/* 扫描目录选择 */}
-      <Card>
-        <div className="flex items-center gap-2 mb-3">
-          <FolderOpen size={16} className="text-slate-500" />
-          <span className="text-sm font-medium text-slate-900">选择扫描目录</span>
-        </div>
-        <input
-          className="input mb-3"
-          placeholder="输入绝对路径，或用下方目录浏览选择"
-          value={sourceDir}
-          onChange={(e) => setSourceDir(e.target.value)}
-        />
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => openDir(sourceDir)} disabled={dirLoading}>
-            {dirLoading ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
-            浏览目录
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => openDir('')} disabled={dirLoading}>
-            从主目录开始
-          </Button>
-          <Button variant="secondary" size="sm" onClick={saveSourceDir} disabled={busy || !activeWorkspace?.id}>
-            保存扫描目录
-          </Button>
-        </div>
-
-        {dirBrowser ? (
-          <div className="mt-3 border border-slate-200 rounded-md overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-              <span className="text-xs text-slate-500 break-all font-mono">{dirBrowser.current}</span>
-              {dirBrowser.parent ? (
-                <button
-                  className="shrink-0 ml-2 inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900"
-                  onClick={() => openDir(dirBrowser.parent)}
-                >
-                  <ChevronUp size={12} /> 上一级
-                </button>
-              ) : null}
-            </div>
-            <div className="max-h-48 overflow-auto p-1">
-              {dirBrowser.children?.length === 0 ? (
-                <div className="text-xs text-slate-400 px-2 py-3 text-center">无子目录</div>
-              ) : (
-                dirBrowser.children?.map((child) => (
-                  <div key={child.path} className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-50 group">
-                    <button
-                      className="flex items-center gap-1.5 text-left text-xs text-slate-700 hover:text-slate-900 min-w-0"
-                      onClick={() => openDir(child.path)}
-                    >
-                      <Folder size={12} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{child.name}</span>
-                    </button>
-                    <button
-                      className="shrink-0 px-2 py-0.5 text-xs rounded border border-slate-200 hover:border-brand-400 hover:text-brand-600 opacity-0 group-hover:opacity-100 transition duration-fast"
-                      onClick={() => setSourceDir(child.path)}
-                    >
-                      选中
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ) : null}
-      </Card>
-
       {/* 操作区 */}
       <div className="grid md:grid-cols-2 gap-4">
+        {/* 批量扫描 */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <ScanLine size={16} className="text-slate-500" />
             <span className="text-sm font-medium text-slate-900">批量扫描</span>
           </div>
-          <p className="text-xs text-slate-500 mb-3">对扫描目录下所有文件执行首次提取与 Wiki 生成。</p>
+          <p className="text-xs text-slate-500 mb-3">对扫描目录下所有子目录执行首次提取与 Wiki 生成。</p>
           <Button
             variant="secondary"
             disabled={busy || !ingestSourceDir}
-            onClick={() => runAction(() => triggerInitialIngest(ingestSourceDir, outputRootDir), '首次扫描已触发')}
+            onClick={() => runAction(() => triggerInitialIngest(ingestSourceDir, outputRootDir, selectedTypes), '首次扫描已触发')}
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             执行首次扫描
           </Button>
         </Card>
 
+        {/* 文件类型筛选 */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
-            <Zap size={16} className="text-slate-500" />
-            <span className="text-sm font-medium text-slate-900">按实体触发</span>
+            <FileText size={16} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-900">文件类型筛选</span>
+            {selectedTypes.length > 0 ? (
+              <button
+                className="ml-auto text-xs text-slate-400 hover:text-slate-600 inline-flex items-center gap-1"
+                onClick={() => setSelectedTypes([])}
+              >
+                <X size={12} /> 清空
+              </button>
+            ) : null}
           </div>
-          <p className="text-xs text-slate-500 mb-3">对指定实体高优先级触发提取。</p>
-          <div className="flex gap-2">
-            <input
-              className="input flex-1"
-              placeholder="实体名，例如 富士康"
-              value={entityName}
-              onChange={(e) => setEntityName(e.target.value)}
-            />
-            <Button
-              variant="primary"
-              disabled={busy || !entityName.trim() || !ingestSourceDir}
-              onClick={() => runAction(() => triggerEntityIngest(entityName.trim(), ingestSourceDir, outputRootDir), '实体触发已提交')}
-            >
-              触发
-            </Button>
+          <p className="text-xs text-slate-500 mb-3">
+            选择要处理的文件类型，不选则处理全部。已选 {selectedTypes.length} / {fileTypes.length} 种。
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {fileTypes.length === 0 ? (
+              <span className="text-xs text-slate-400">加载中…</span>
+            ) : (
+              fileTypes.map((t) => {
+                const active = selectedTypes.includes(t.key);
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => toggleType(t.key)}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition duration-fast ${
+                      active
+                        ? 'border-brand-500 bg-brand-50 text-brand-700'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {active ? <X size={11} /> : <Plus size={11} />}
+                    {t.label}
+                  </button>
+                );
+              })
+            )}
           </div>
+          {selectedTypes.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {selectedTypes.map((key) => {
+                const ft = fileTypes.find((f) => f.key === key);
+                if (!ft) return null;
+                return (
+                  <Badge key={key} variant="brand">
+                    {ft.label}
+                  </Badge>
+                );
+              })}
+            </div>
+          ) : null}
         </Card>
       </div>
 

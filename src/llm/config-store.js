@@ -23,7 +23,8 @@ const ALL_ENV_KEYS = [
   'OPENAI_API_KEY',
   'DASHSCOPE_API_KEY',
   'ANTHROPIC_API_KEY',
-  'GEMINI_API_KEY'
+  'GEMINI_API_KEY',
+  'LANGAI_API_KEY'
 ];
 
 function getConfigPath(dataDir) {

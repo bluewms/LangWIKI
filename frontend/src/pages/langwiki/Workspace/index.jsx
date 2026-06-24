@@ -47,7 +47,7 @@ export default function WorkspacePage({ compact = false }) {
       gitRemoteUrl: activeWorkspace.git?.remoteUrl || '',
       gitBranch: activeWorkspace.git?.branch || 'main'
     });
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace]);
 
   async function openDir(pathValue = '') {
     setDirLoading(true);
@@ -219,10 +219,10 @@ export default function WorkspacePage({ compact = false }) {
                             </button>
                             <button
                               type="button"
-                              className="shrink-0 px-2 py-0.5 text-xs rounded border border-slate-200 hover:border-brand-400 hover:text-brand-600 opacity-0 group-hover:opacity-100 transition duration-fast"
+                              className="shrink-0 px-2.5 py-1 text-xs rounded border border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100 hover:border-brand-400 transition duration-fast font-medium"
                               onClick={() => setForm((prev) => ({ ...prev, sourceDir: child.path }))}
                             >
-                              选中
+                              选中此目录
                             </button>
                           </div>
                         ))

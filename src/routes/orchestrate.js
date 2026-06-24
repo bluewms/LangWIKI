@@ -1,9 +1,20 @@
 const express = require('express');
+const { FILE_TYPE_EXTENSIONS, FILE_TYPE_LABELS } = require('../workspace/scanner');
 
 function createOrchestrateRouter(config = {}) {
   const router = express.Router();
   const orchestrator = config.orchestrator;
   const defaultRootDir = config.defaultRootDir;
+
+  // 获取支持的文件类型分组
+  router.get('/ingest/file-types', (_req, res) => {
+    const types = Object.entries(FILE_TYPE_EXTENSIONS).map(([key, exts]) => ({
+      key,
+      label: FILE_TYPE_LABELS[key] || key,
+      extensions: exts
+    }));
+    return res.json({ ok: true, types });
+  });
 
   router.post('/ingest/trigger', (req, res) => {
     const rootDir = req.body?.rootDir || defaultRootDir;
@@ -21,7 +32,8 @@ function createOrchestrateRouter(config = {}) {
   router.post('/ingest/initial', (req, res) => {
     const rootDir = req.body?.rootDir || defaultRootDir;
     const outputRootDir = req.body?.outputRootDir || rootDir;
-    const jobIds = orchestrator.scheduleInitialScan(rootDir, { outputRootDir });
+    const fileTypes = req.body?.fileTypes || null;
+    const jobIds = orchestrator.scheduleInitialScan(rootDir, { outputRootDir, fileTypes });
     return res.json({ ok: true, jobIds, priority: 'LOW' });
   });
 

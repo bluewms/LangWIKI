@@ -43,13 +43,14 @@ class Orchestrator {
 
   scheduleInitialScan(rootDir, options = {}) {
     const outputRootDir = options.outputRootDir || rootDir;
+    const fileTypes = options.fileTypes || null;
     const scan = scanDirectory(rootDir);
     const jobs = scan.subdirs.map((dir) => ({
       type: 'ingest-entity',
       payload: {
         rootDir,
         entityName: dir.name,
-        options: { mode: 'initial', outputRootDir }
+        options: { mode: 'initial', outputRootDir, fileTypes }
       }
     }));
 
@@ -93,7 +94,7 @@ class Orchestrator {
     const schemaContent = loadSchema(outputRootDir);
     const prevState = loadState(outputRootDir, entityName);
 
-    const files = listFiles(entityRawDir);
+    const files = listFiles(entityRawDir, { fileTypes: options.fileTypes });
     const changedFiles = files.filter((file) => prevState.processedFiles?.[file.name] !== file.sha256);
 
     if (changedFiles.length === 0 && !options.force) {

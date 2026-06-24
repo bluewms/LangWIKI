@@ -100,6 +100,15 @@ const MODEL_PRESETS = {
     note: '通义千问 Qwen Turbo（快）'
   },
 
+  // --- LangAI vLLM 自部署模型（OpenAI 兼容接口）---
+  'langai/Qwen3.6-35B-A3B-NVFP4': {
+    provider: 'langai',
+    model: 'nvidia/Qwen3.6-35B-A3B-NVFP4',
+    baseUrl: 'http://111.231.100.113:3000/v1',
+    envVars: ['LANGAI_API_KEY'],
+    note: 'LangAI vLLM Qwen3.6 35B NVFP4（自部署，支持多模态/推理/工具调用）'
+  },
+
   // --- Ollama 本地模型（完全离线）---
   'ollama/qwen2.5:7b': {
     provider: 'ollama',
@@ -125,6 +134,7 @@ const PROVIDER_HANDLERS = {
   deepseek: openaiCompat,
   qwen: openaiCompat,
   ollama: openaiCompat,
+  langai: openaiCompat,
   anthropic,
   google: gemini
 };
@@ -135,6 +145,7 @@ const PROVIDER_ENV_KEYS = {
   deepseek: 'DEEPSEEK_API_KEY',
   qwen: 'DASHSCOPE_API_KEY',
   ollama: null,
+  langai: 'LANGAI_API_KEY',
   anthropic: 'ANTHROPIC_API_KEY',
   google: 'GEMINI_API_KEY'
 };
@@ -173,7 +184,7 @@ function resolveModel(modelName) {
   const envKey = PROVIDER_ENV_KEYS[provider];
 
   if (!envKey && provider !== 'ollama') {
-    throw new Error(`未知 provider: ${provider}。支持: openai, deepseek, qwen, ollama, anthropic, google`);
+    throw new Error(`未知 provider: ${provider}。支持: openai, deepseek, qwen, ollama, langai, anthropic, google`);
   }
 
   // 默认 baseUrl
@@ -181,7 +192,8 @@ function resolveModel(modelName) {
     openai: 'https://api.openai.com/v1',
     deepseek: 'https://api.deepseek.com/v1',
     qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    ollama: 'http://localhost:11434/v1'
+    ollama: 'http://localhost:11434/v1',
+    langai: 'http://111.231.100.113:3000/v1'
   };
 
   return {

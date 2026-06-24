@@ -1,0 +1,26 @@
+[
+  {
+    "id": "local-ws",
+    "name": "本地测试工作区",
+    "rootDir": "/Users/jianglang/CodeBuddy/LangWIKI/LangWIKI/data/workspaces/local-ws",
+    "sourceDir": "/Users/jianglang/CodeBuddy/LangWIKI/LangWIKI/data/business",
+    "git": {
+      "enabled": false,
+      "remoteUrl": "",
+      "branch": "main"
+    },
+    "updatedAt": "2026-06-23T14:12:51.239Z"
+  },
+  {
+    "id": "ws-001",
+    "name": "新建工作1",
+    "rootDir": "/Users/jianglang/CodeBuddy/LangWIKI/LangWIKI/data/workspaces/ws-001",
+    "sourceDir": "/Users/jianglang/Applications/blue.app",
+    "git": {
+      "enabled": false,
+      "remoteUrl": "",
+      "branch": "main"
+    },
+    "updatedAt": "2026-06-23T15:00:20.532Z"
+  }
+]

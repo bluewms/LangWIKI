@@ -47,15 +47,23 @@ function createServer(config = {}) {
   });
 
   if (hasFrontend) {
-    app.use(express.static(frontendDist));
+    app.use(express.static(frontendDist, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+      }
+    }));
 
-    app.get('/', (_req, res) => {
+    // SPA 入口：禁止缓存 HTML，确保每次拿到最新引用的 JS 文件名
+    const sendIndex = (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(frontendIndex);
-    });
-
-    app.get('/langwiki/*', (_req, res) => {
-      res.sendFile(frontendIndex);
-    });
+    };
+    app.get('/', sendIndex);
+    app.get('/langwiki/*', sendIndex);
   } else {
     app.get('/', (_req, res) => {
       res

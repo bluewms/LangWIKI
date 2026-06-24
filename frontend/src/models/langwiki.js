@@ -19,10 +19,15 @@ export async function getIngestStatus() {
   return request('/api/langwiki/ingest/status');
 }
 
-export async function triggerInitialIngest(rootDir, outputRootDir) {
+export async function getIngestFileTypes() {
+  return request('/api/langwiki/ingest/file-types');
+}
+
+export async function triggerInitialIngest(rootDir, outputRootDir, fileTypes) {
   const payload = {};
   if (rootDir) payload.rootDir = rootDir;
   if (outputRootDir) payload.outputRootDir = outputRootDir;
+  if (fileTypes && fileTypes.length > 0) payload.fileTypes = fileTypes;
 
   return request('/api/langwiki/ingest/initial', {
     method: 'POST',

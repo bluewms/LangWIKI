@@ -18,7 +18,9 @@ export function setActiveWorkspace(workspace) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     id: workspace.id,
     name: workspace.name || workspace.id,
-    rootDir: workspace.rootDir
+    rootDir: workspace.rootDir,
+    sourceDir: workspace.sourceDir || '',
+    git: workspace.git || null
   }));
 }
 
